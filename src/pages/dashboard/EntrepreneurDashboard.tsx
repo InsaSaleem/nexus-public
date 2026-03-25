@@ -10,13 +10,15 @@ import { useAuth } from '../../context/AuthContext';
 import { CollaborationRequest } from '../../types';
 import { getRequestsForEntrepreneur } from '../../data/collaborationRequests';
 import { investors } from '../../data/users';
-// Updated Import Path
+// Component Import
 import MeetingCalendar from '../../components/collaboration/MeetingCalendar';
 
 export const EntrepreneurDashboard: React.FC = () => {
   const { user } = useAuth();
   const [collaborationRequests, setCollaborationRequests] = useState<CollaborationRequest[]>([]);
-  const [recommendedInvestors, setRecommendedInvestors] = useState(investors.slice(0, 3));
+  
+  // Warning handle karne ke liye underscore '_' add kiya hai
+  const [recommendedInvestors, _setRecommendedInvestors] = useState(investors.slice(0, 3));
   
   useEffect(() => {
     if (user) {
@@ -138,6 +140,11 @@ export const EntrepreneurDashboard: React.FC = () => {
               )}
             </CardBody>
           </Card>
+
+          {/* Week 1 Milestone: Meeting Schedule Integrated Here */}
+          <div className="mt-6">
+            <MeetingCalendar />
+          </div>
         </div>
         
         <div className="space-y-4">
@@ -153,18 +160,6 @@ export const EntrepreneurDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </div>
-      </div>
-
-      {/* Week 1 Task: Meeting Schedule */}
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-medium text-gray-900">Meeting Schedule</h2>
-          </CardHeader>
-          <CardBody>
-            <MeetingCalendar />
-          </CardBody>
-        </Card>
       </div>
     </div>
   );
