@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { CollaborationRequest } from '../../types';
 import { getRequestsForEntrepreneur } from '../../data/collaborationRequests';
 import { investors } from '../../data/users';
+// Updated Import Path
+import MeetingCalendar from '../../components/collaboration/MeetingCalendar';
 
 export const EntrepreneurDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -18,7 +20,6 @@ export const EntrepreneurDashboard: React.FC = () => {
   
   useEffect(() => {
     if (user) {
-      // Load collaboration requests
       const requests = getRequestsForEntrepreneur(user.id);
       setCollaborationRequests(requests);
     }
@@ -43,13 +44,8 @@ export const EntrepreneurDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Welcome, {user.name}</h1>
           <p className="text-gray-600">Here's what's happening with your startup today</p>
         </div>
-        
         <Link to="/investors">
-          <Button
-            leftIcon={<PlusCircle size={18} />}
-          >
-            Find Investors
-          </Button>
+          <Button leftIcon={<PlusCircle size={18} />}>Find Investors</Button>
         </Link>
       </div>
       
@@ -115,14 +111,12 @@ export const EntrepreneurDashboard: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Collaboration requests */}
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader className="flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">Collaboration Requests</h2>
               <Badge variant="primary">{pendingRequests.length} pending</Badge>
             </CardHeader>
-            
             <CardBody>
               {collaborationRequests.length > 0 ? (
                 <div className="space-y-4">
@@ -140,34 +134,37 @@ export const EntrepreneurDashboard: React.FC = () => {
                     <AlertCircle size={24} className="text-gray-500" />
                   </div>
                   <p className="text-gray-600">No collaboration requests yet</p>
-                  <p className="text-sm text-gray-500 mt-1">When investors are interested in your startup, their requests will appear here</p>
                 </div>
               )}
             </CardBody>
           </Card>
         </div>
         
-        {/* Recommended investors */}
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">Recommended Investors</h2>
-              <Link to="/investors" className="text-sm font-medium text-primary-600 hover:text-primary-500">
-                View all
-              </Link>
+              <Link to="/investors" className="text-sm font-medium text-primary-600 hover:text-primary-500">View all</Link>
             </CardHeader>
-            
             <CardBody className="space-y-4">
               {recommendedInvestors.map(investor => (
-                <InvestorCard
-                  key={investor.id}
-                  investor={investor}
-                  showActions={false}
-                />
+                <InvestorCard key={investor.id} investor={investor} showActions={false} />
               ))}
             </CardBody>
           </Card>
         </div>
+      </div>
+
+      {/* Week 1 Task: Meeting Schedule */}
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-medium text-gray-900">Meeting Schedule</h2>
+          </CardHeader>
+          <CardBody>
+            <MeetingCalendar />
+          </CardBody>
+        </Card>
       </div>
     </div>
   );
