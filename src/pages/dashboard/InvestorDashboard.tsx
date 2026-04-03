@@ -13,7 +13,7 @@ import { entrepreneurs } from '../../data/users';
 import { getRequestsFromInvestor } from '../../data/collaborationRequests';
 
 // Component Import
-import MeetingCalendar from '../../components/collaboration/MeetingCalendar';
+import {MeetingCalendar} from '../../components/collaboration/MeetingCalendar';
 
 export const InvestorDashboard: React.FC = () => {
   const { user } = useAuth();

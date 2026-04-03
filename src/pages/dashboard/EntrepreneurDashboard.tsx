@@ -12,14 +12,17 @@ import { getRequestsForEntrepreneur } from '../../data/collaborationRequests';
 import { investors } from '../../data/users';
 
 // Components
-import MeetingCalendar from '../../components/collaboration/MeetingCalendar';
+import { MeetingCalendar } from '../../components/collaboration/MeetingCalendar';
 
 export const EntrepreneurDashboard: React.FC = () => {
   const { user } = useAuth();
   const [collaborationRequests, setCollaborationRequests] = useState<CollaborationRequest[]>([]);
   
-  // Note: VideoCallModal logic ab DashboardLayout aur Navbar handle kar rahe hain
-  const [recommendedInvestors, _setRecommendedInvestors] = useState(investors.slice(0, 3));
+  // Stats State (Inhein humne dynamic kar diya hai)
+  const [profileViews, setProfileViews] = useState(24);
+  const [upcomingMeetings, setUpcomingMeetings] = useState(2);
+  
+  const [recommendedInvestors] = useState(investors.slice(0, 3));
   
   useEffect(() => {
     if (user) {
@@ -28,16 +31,23 @@ export const EntrepreneurDashboard: React.FC = () => {
     }
   }, [user]);
   
+  // STEP 3: Logic for Accept/Decline
   const handleRequestStatusUpdate = (requestId: string, status: 'accepted' | 'rejected') => {
     setCollaborationRequests(prevRequests => 
       prevRequests.map(req => 
         req.id === requestId ? { ...req, status } : req
       )
     );
+
+    // Agar accept ho jaye to aik chota sa notification/feedback
+    if (status === 'accepted') {
+        console.log("Request accepted, connection count will auto-update");
+    }
   };
   
   if (!user) return null;
   
+  // Filtring requests for stats
   const pendingRequests = collaborationRequests.filter(req => req.status === 'pending');
   const acceptedRequests = collaborationRequests.filter(req => req.status === 'accepted');
   
@@ -62,7 +72,7 @@ export const EntrepreneurDashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* Summary Stat Cards - Updated labels for lowercase consistency */}
+      {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-white border-l-4 border-l-primary-500 hover:shadow-md transition-all">
           <CardBody>
@@ -100,7 +110,7 @@ export const EntrepreneurDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Upcoming Meetings</p>
-                <h3 className="text-xl font-bold text-gray-900">2</h3>
+                <h3 className="text-xl font-bold text-gray-900">{upcomingMeetings}</h3>
               </div>
             </div>
           </CardBody>
@@ -114,7 +124,7 @@ export const EntrepreneurDashboard: React.FC = () => {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Profile Views</p>
-                <h3 className="text-xl font-bold text-gray-900">24</h3>
+                <h3 className="text-xl font-bold text-gray-900">{profileViews}</h3>
               </div>
             </div>
           </CardBody>
@@ -123,17 +133,18 @@ export const EntrepreneurDashboard: React.FC = () => {
       
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Requests and Calendar */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="overflow-hidden border-none shadow-sm">
             <CardHeader className="bg-white border-b border-gray-100 flex justify-between items-center py-4">
               <h2 className="text-lg font-semibold text-gray-800">Collaboration Requests</h2>
-              <Badge variant="primary" className="px-3 py-1">{pendingRequests.length} New</Badge>
+              {pendingRequests.length > 0 && (
+                <Badge variant="primary" className="px-3 py-1">{pendingRequests.length} New</Badge>
+              )}
             </CardHeader>
             <CardBody className="p-0">
-              {collaborationRequests.length > 0 ? (
+              {pendingRequests.length > 0 ? (
                 <div className="divide-y divide-gray-50">
-                  {collaborationRequests.map(request => (
+                  {pendingRequests.map(request => (
                     <div key={request.id} className="p-4 hover:bg-gray-50 transition-colors">
                       <CollaborationRequestCard
                         request={request}
@@ -147,13 +158,14 @@ export const EntrepreneurDashboard: React.FC = () => {
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
                     <AlertCircle size={28} className="text-gray-300" />
                   </div>
-                  <p className="text-gray-500 font-medium">No collaboration requests found</p>
-                  <p className="text-sm text-gray-400">Your startup profile is live! Requests will appear here.</p>
+                  <p className="text-gray-500 font-medium">No pending requests</p>
+                  <p className="text-sm text-gray-400">All caught up! New requests will appear here.</p>
                 </div>
               )}
             </CardBody>
           </Card>
 
+          {/* STEP 4: Calendar Component */}
           <Card className="border-none shadow-sm overflow-hidden">
              <CardHeader className="bg-white border-b border-gray-100">
                 <h2 className="text-lg font-semibold text-gray-800">Meeting Schedule</h2>
@@ -164,15 +176,12 @@ export const EntrepreneurDashboard: React.FC = () => {
           </Card>
         </div>
         
-        {/* Right Column: Recommendations */}
+        {/* Right Column */}
         <div className="space-y-6">
           <Card className="border-none shadow-sm overflow-hidden">
             <CardHeader className="bg-white border-b border-gray-100 flex justify-between items-center py-4">
               <h2 className="text-lg font-semibold text-gray-800">Recommended Investors</h2>
-              <Link 
-                to="/investors" 
-                className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-              >
+              <Link to="/investors" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
                 View all
               </Link>
             </CardHeader>
