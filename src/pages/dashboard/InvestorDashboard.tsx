@@ -1,19 +1,15 @@
-// Baki saare imports wese hi rahenge...
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, PieChart, Filter, Search, PlusCircle } from 'lucide-react';
+import { Users, PieChart, Search, PlusCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { EntrepreneurCard } from '../../components/entrepreneur/EntrepreneurCard';
 import { useAuth } from '../../context/AuthContext';
-import { Entrepreneur } from '../../types';
 import { entrepreneurs } from '../../data/users';
 import { getRequestsFromInvestor } from '../../data/collaborationRequests';
-
-// Component Import
-import {MeetingCalendar} from '../../components/collaboration/MeetingCalendar';
+import { MeetingCalendar } from '../../components/collaboration/MeetingCalendar';
 
 export const InvestorDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -22,10 +18,17 @@ export const InvestorDashboard: React.FC = () => {
   
   if (!user) return null;
   
-  // Logic (sentRequests, filteredEntrepreneurs etc.) wahi rahegi...
   const sentRequests = getRequestsFromInvestor(user.id);
   const industries = Array.from(new Set(entrepreneurs.map(e => e.industry)));
   
+  const toggleIndustry = (industry: string) => {
+    setSelectedIndustries(prev => 
+      prev.includes(industry) 
+        ? prev.filter(i => i !== industry) 
+        : [...prev, industry]
+    );
+  };
+
   const filteredEntrepreneurs = entrepreneurs.filter(entrepreneur => {
     const matchesSearch = searchQuery === '' || 
       entrepreneur.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -37,12 +40,6 @@ export const InvestorDashboard: React.FC = () => {
     
     return matchesSearch && matchesIndustry;
   });
-
-  const toggleIndustry = (industry: string) => {
-    setSelectedIndustries(prev => 
-      prev.includes(industry) ? prev.filter(i => i !== industry) : [...prev, industry]
-    );
-  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -56,7 +53,6 @@ export const InvestorDashboard: React.FC = () => {
         </Link>
       </div>
       
-      {/* Filters and search */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-2/3">
           <Input
@@ -73,6 +69,7 @@ export const InvestorDashboard: React.FC = () => {
                     key={industry}
                     variant={selectedIndustries.includes(industry) ? 'primary' : 'gray'}
                     className="cursor-pointer whitespace-nowrap"
+                    rounded={true}
                     onClick={() => toggleIndustry(industry)}
                 >
                     {industry}
@@ -81,7 +78,6 @@ export const InvestorDashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* Stats summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary-50 border border-primary-100">
           <CardBody>
@@ -126,12 +122,10 @@ export const InvestorDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* --- YAHAN CALENDAR ADD KIYA GAYA HAI --- */}
       <div className="mt-8">
         <MeetingCalendar />
       </div>
 
-      {/* Entrepreneurs grid */}
       <div className="mt-8">
         <Card>
           <CardHeader>
