@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, X, MonitorUp, PhoneCall } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, X, MonitorUp, PhoneCall, MonitorOff } from 'lucide-react';
 import { Button } from '../ui/Button';
 import Peer from 'peerjs';
 
@@ -12,14 +12,17 @@ interface VideoCallModalProps {
 export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose, meetingTitle }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [peerId, setPeerId] = useState<string>("");
-  const [remotePeerIdValue, setRemotePeerIdValue] = useState<string>(""); // Input state
+  const [remotePeerIdValue, setRemotePeerIdValue] = useState<string>(""); 
   const [isCalling, setIsCalling] = useState(false);
 
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerInstance = useRef<Peer | null>(null);
   const currentStream = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const activeCall = useRef<any>(null); // Call reference save karne ke liye
 
   useEffect(() => {
     if (isOpen) {
@@ -34,11 +37,10 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
           
           peer.on('open', (id) => {
             setPeerId(id);
-            console.log("Apki Connection ID hai:", id);
           });
 
-          // Incoming Call handle karna
           peer.on('call', (call) => {
+            activeCall.current = call;
             call.answer(stream);
             call.on('stream', (userRemoteStream) => {
               if (remoteVideoRef.current) {
@@ -54,16 +56,17 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
 
     return () => {
       currentStream.current?.getTracks().forEach(track => track.stop());
+      screenStreamRef.current?.getTracks().forEach(track => track.stop());
       peerInstance.current?.destroy();
     };
   }, [isOpen]);
 
-  // Outgoing Call Logic
   const callPeer = (id: string) => {
     if (!peerInstance.current || !currentStream.current) return;
     
     setIsCalling(true);
     const call = peerInstance.current.call(id, currentStream.current);
+    activeCall.current = call;
     
     call.on('stream', (userRemoteStream) => {
       if (remoteVideoRef.current) {
@@ -73,10 +76,74 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
     });
   };
 
+  // --- SCREEN SHARE LOGIC START ---
+  const handleScreenShare = async () => {
+    if (!isScreenSharing) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = stream;
+        
+        const screenTrack = stream.getVideoTracks()[0];
+
+        // Apne video mein screen dikhayein
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+        }
+
+        // Peer ko screen bhejna
+        if (activeCall.current && activeCall.current.peerConnection) {
+          const senders = activeCall.current.peerConnection.getSenders();
+          const videoSender = senders.find((s: any) => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(screenTrack);
+          }
+        }
+
+        // Jab user "Stop Sharing" button (browser wala) dabaye
+        screenTrack.onended = () => {
+          stopScreenSharing();
+        };
+
+        setIsScreenSharing(true);
+      } catch (err) {
+        console.error("Screen share error:", err);
+      }
+    } else {
+      stopScreenSharing();
+    }
+  };
+
+  const stopScreenSharing = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+
+    // Wapis camera par switch karein
+    if (myVideoRef.current && currentStream.current) {
+      myVideoRef.current.srcObject = currentStream.current;
+    }
+
+    // Peer ko wapis camera track bhejna
+    if (activeCall.current && activeCall.current.peerConnection && currentStream.current) {
+      const videoTrack = currentStream.current.getVideoTracks()[0];
+      const senders = activeCall.current.peerConnection.getSenders();
+      const videoSender = senders.find((s: any) => s.track?.kind === 'video');
+      if (videoSender) {
+        videoSender.replaceTrack(videoTrack);
+      }
+    }
+    setIsScreenSharing(false);
+  };
+  // --- SCREEN SHARE LOGIC END ---
+
   useEffect(() => {
     if (currentStream.current) {
-      currentStream.current.getAudioTracks()[0].enabled = !isMuted;
-      currentStream.current.getVideoTracks()[0].enabled = isVideoOn;
+      if (currentStream.current.getAudioTracks().length > 0) {
+        currentStream.current.getAudioTracks()[0].enabled = !isMuted;
+      }
+      if (currentStream.current.getVideoTracks().length > 0) {
+        currentStream.current.getVideoTracks()[0].enabled = isVideoOn;
+      }
     }
   }, [isMuted, isVideoOn]);
 
@@ -98,7 +165,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
             </div>
           </div>
           
-          {/* Peer ID Input Box */}
           <div className="flex gap-2 bg-gray-900 p-1.5 rounded-xl border border-gray-700 ml-4">
             <input 
               type="text" 
@@ -128,6 +194,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
              <video 
                ref={remoteVideoRef} 
                autoPlay 
+               playsInline
                className="w-full h-full object-cover"
              />
              {!remoteVideoRef.current?.srcObject && (
@@ -142,20 +209,22 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
              )}
           </div>
           
-          {/* Local User Preview */}
           <div className="absolute bottom-6 right-6 w-52 h-36 bg-gray-800 rounded-2xl border-2 border-primary-500 overflow-hidden shadow-2xl z-10">
             <video 
               ref={myVideoRef} 
               autoPlay 
               muted 
-              className={`w-full h-full object-cover ${!isVideoOn ? 'hidden' : ''}`} 
+              playsInline
+              className={`w-full h-full object-cover ${!isVideoOn && !isScreenSharing ? 'hidden' : ''}`} 
             />
-            {!isVideoOn && (
+            {!isVideoOn && !isScreenSharing && (
               <div className="w-full h-full flex items-center justify-center bg-gray-900">
                 <VideoOff size={32} className="text-gray-700" />
               </div>
             )}
-            <div className="absolute top-2 left-2 bg-black/50 px-2 py-0.5 rounded text-[8px] text-white font-bold uppercase">You</div>
+            <div className="absolute top-2 left-2 bg-black/50 px-2 py-0.5 rounded text-[8px] text-white font-bold uppercase">
+              {isScreenSharing ? "Sharing Screen" : "You"}
+            </div>
           </div>
         </div>
 
@@ -169,8 +238,13 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({ isOpen, onClose,
             {!isVideoOn ? <VideoOff size={20} /> : <Video size={20} />}
           </Button>
 
-          <Button variant="outline" className="rounded-full w-12 h-12 text-white">
-            <MonitorUp size={20} />
+          {/* Screen Share Button Updated */}
+          <Button 
+            variant={isScreenSharing ? "primary" : "outline"} 
+            onClick={handleScreenShare} 
+            className="rounded-full w-12 h-12 text-white transition-all"
+          >
+            {isScreenSharing ? <MonitorOff size={20} /> : <MonitorUp size={20} />}
           </Button>
 
           <div className="h-8 w-px bg-gray-700 mx-2" />

@@ -11,16 +11,51 @@ import { entrepreneurs } from '../../data/users';
 import { getRequestsFromInvestor } from '../../data/collaborationRequests';
 import { MeetingCalendar } from '../../components/collaboration/MeetingCalendar';
 
+// Week 3 Payments & Security Imports
+import WalletCard from '../../components/payment/WalletCard';
+import TransactionHistory from '../../components/payment/TransactionHistory';
+import { OTPModal } from '../../components/ui/OTPModal';
+
 export const InvestorDashboard: React.FC = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   
+  // --- NEW REAL LOGIC STATES ---
+  const [balance, setBalance] = useState(48250.00); // Initial Balance
+  const [isOTPOpen, setIsOTPOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'add' | 'transfer' | null>(null);
+
   if (!user) return null;
   
   const sentRequests = getRequestsFromInvestor(user.id);
   const industries = Array.from(new Set(entrepreneurs.map(e => e.industry)));
   
+  // OTP Verify Hone ke baad ki logic
+  const handleVerifyOTP = () => {
+    if (pendingAction === 'add') {
+      setBalance(prev => prev + 1000); // $1000 add kar diye
+      alert("Success! $1,000.00 added to your wallet.");
+    } else if (pendingAction === 'transfer') {
+      setBalance(prev => prev - 500); // $500 transfer kar diye
+      alert("Success! $500.00 transferred successfully.");
+    }
+    
+    setIsOTPOpen(false);
+    setPendingAction(null);
+  };
+
+  // Buttons ke functions
+  const triggerAddFunds = () => {
+    setPendingAction('add');
+    setIsOTPOpen(true);
+  };
+
+  const triggerTransfer = () => {
+    setPendingAction('transfer');
+    setIsOTPOpen(true);
+  };
+
   const toggleIndustry = (industry: string) => {
     setSelectedIndustries(prev => 
       prev.includes(industry) 
@@ -43,6 +78,7 @@ export const InvestorDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Discover Startups</h1>
@@ -53,6 +89,7 @@ export const InvestorDashboard: React.FC = () => {
         </Link>
       </div>
       
+      {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-2/3">
           <Input
@@ -78,6 +115,7 @@ export const InvestorDashboard: React.FC = () => {
         </div>
       </div>
       
+      {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary-50 border border-primary-100">
           <CardBody>
@@ -122,10 +160,28 @@ export const InvestorDashboard: React.FC = () => {
         </Card>
       </div>
 
+      {/* WEEK 3: PAYMENT SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+        <div className="lg:col-span-7">
+            {/* Balance pass kiya WalletCard ko aur click handlers diye */}
+            <WalletCard 
+              balance={balance} 
+              onAddFunds={triggerAddFunds} 
+              onTransfer={triggerTransfer} 
+            />
+        </div>
+        <div className="lg:col-span-5">
+            <TransactionHistory />
+        </div>
+      </div>
+
+      {/* Calendar Section */}
       <div className="mt-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Meeting Schedule</h2>
         <MeetingCalendar />
       </div>
 
+      {/* Featured Startups Section */}
       <div className="mt-8">
         <Card>
           <CardHeader>
@@ -146,6 +202,13 @@ export const InvestorDashboard: React.FC = () => {
           </CardBody>
         </Card>
       </div>
+
+      {/* Security Verification Modal */}
+      <OTPModal 
+        isOpen={isOTPOpen} 
+        onClose={() => setIsOTPOpen(false)} 
+        onVerify={handleVerifyOTP} 
+      />
     </div>
   );
 };
