@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, PieChart, Search, PlusCircle } from 'lucide-react';
+import { Users, PieChart, Search, PlusCircle, Calendar } from 'lucide-react';
+
+// FIX: Named import for Joyride
+import { Joyride } from 'react-joyride';
+
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -11,7 +15,6 @@ import { entrepreneurs } from '../../data/users';
 import { getRequestsFromInvestor } from '../../data/collaborationRequests';
 import { MeetingCalendar } from '../../components/collaboration/MeetingCalendar';
 
-// Week 3 Payments & Security Imports
 import WalletCard from '../../components/payment/WalletCard';
 import TransactionHistory from '../../components/payment/TransactionHistory';
 import { OTPModal } from '../../components/ui/OTPModal';
@@ -21,31 +24,89 @@ export const InvestorDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   
-  // --- NEW REAL LOGIC STATES ---
-  const [balance, setBalance] = useState(48250.00); // Initial Balance
+  const [balance, setBalance] = useState(48250.00);
   const [isOTPOpen, setIsOTPOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'add' | 'transfer' | null>(null);
+
+  const [runTour, setRunTour] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => setRunTour(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   if (!user) return null;
   
   const sentRequests = getRequestsFromInvestor(user.id);
   const industries = Array.from(new Set(entrepreneurs.map(e => e.industry)));
-  
-  // OTP Verify Hone ke baad ki logic
+
+  // FIX: Using any[] to bypass 'disableBeacon' and placement errors
+  const tourSteps: any[] = [
+    {
+      target: '.investor-welcome-section',
+      content: 'Welcome to the Investor Portal. Manage your portfolio and discover new ventures here.',
+      disableBeacon: true,
+      placement: 'bottom',
+    },
+    {
+      target: '.wallet-section',
+      content: 'Monitor your investment balance and perform secure financial transactions.',
+      placement: 'right',
+    },
+    {
+      target: '.search-filter-section',
+      content: 'Use advanced filters to find startups that align with your investment criteria.',
+      placement: 'bottom',
+    },
+    {
+      target: '.calendar-section',
+      content: 'Stay updated with your scheduled pitch meetings and follow-ups.',
+      placement: 'top',
+    }
+  ];
+
+  // FIX: Using any to bypass 'options' error
+  const tourStyles: any = {
+    options: {
+      primaryColor: '#0ea5e9',
+      zIndex: 10000,
+      backgroundColor: '#ffffff',
+      textColor: '#334155',
+      arrowColor: '#ffffff',
+    },
+    tooltip: {
+      width: 280,
+      padding: '12px',
+      borderRadius: '8px',
+    },
+    tooltipContent: {
+      fontSize: '14px',
+      padding: '5px 0',
+    },
+    buttonNext: {
+      backgroundColor: '#0ea5e9',
+      fontSize: '13px',
+    },
+    buttonBack: {
+      marginRight: '10px',
+      fontSize: '13px',
+    }
+  };
+
   const handleVerifyOTP = () => {
     if (pendingAction === 'add') {
-      setBalance(prev => prev + 1000); // $1000 add kar diye
+      setBalance(prev => prev + 1000);
       alert("Success! $1,000.00 added to your wallet.");
     } else if (pendingAction === 'transfer') {
-      setBalance(prev => prev - 500); // $500 transfer kar diye
+      setBalance(prev => prev - 500);
       alert("Success! $500.00 transferred successfully.");
     }
-    
     setIsOTPOpen(false);
     setPendingAction(null);
   };
 
-  // Buttons ke functions
   const triggerAddFunds = () => {
     setPendingAction('add');
     setIsOTPOpen(true);
@@ -58,9 +119,7 @@ export const InvestorDashboard: React.FC = () => {
 
   const toggleIndustry = (industry: string) => {
     setSelectedIndustries(prev => 
-      prev.includes(industry) 
-        ? prev.filter(i => i !== industry) 
-        : [...prev, industry]
+      prev.includes(industry) ? prev.filter(i => i !== industry) : [...prev, industry]
     );
   };
 
@@ -77,9 +136,21 @@ export const InvestorDashboard: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6 animate-fade-in pb-10">
+      {/* FINAL FIX: Casting whole prop object as 'any' to fix 'showProgress' error */}
+      <Joyride 
+        {...({
+          steps: tourSteps,
+          run: runTour,
+          continuous: true, 
+          showProgress: true, 
+          showSkipButton: true,
+          styles: tourStyles,
+          scrollToFirstStep: true
+        } as any)}
+      />
+
+      <div className="investor-welcome-section flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Discover Startups</h1>
           <p className="text-gray-600">Find and connect with promising entrepreneurs</p>
@@ -89,8 +160,7 @@ export const InvestorDashboard: React.FC = () => {
         </Link>
       </div>
       
-      {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="search-filter-section flex flex-col md:flex-row gap-4">
         <div className="w-full md:w-2/3">
           <Input
             placeholder="Search startups..."
@@ -115,7 +185,6 @@ export const InvestorDashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-primary-50 border border-primary-100">
           <CardBody>
@@ -160,10 +229,8 @@ export const InvestorDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* WEEK 3: PAYMENT SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+      <div className="wallet-section grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
         <div className="lg:col-span-7">
-            {/* Balance pass kiya WalletCard ko aur click handlers diye */}
             <WalletCard 
               balance={balance} 
               onAddFunds={triggerAddFunds} 
@@ -175,13 +242,11 @@ export const InvestorDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Calendar Section */}
-      <div className="mt-8">
+      <div className="calendar-section mt-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Meeting Schedule</h2>
         <MeetingCalendar />
       </div>
 
-      {/* Featured Startups Section */}
       <div className="mt-8">
         <Card>
           <CardHeader>
@@ -203,7 +268,6 @@ export const InvestorDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Security Verification Modal */}
       <OTPModal 
         isOpen={isOTPOpen} 
         onClose={() => setIsOTPOpen(false)} 
