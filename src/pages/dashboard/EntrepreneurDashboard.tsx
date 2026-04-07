@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Bell, Calendar, TrendingUp, PlusCircle } from 'lucide-react';
 
-// FIX: Named import use karein
-import { Joyride } from 'react-joyride';
+// FIXED: Default import use kiya hay taake deployment error na aaye
+import  {Joyride} from 'react-joyride';
 
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -25,7 +25,6 @@ export const EntrepreneurDashboard: React.FC = () => {
   const [upcomingMeetings] = useState(2);
   const [recommendedInvestors] = useState(investors.slice(0, 3));
 
-  // FINAL FIX: Using 'any[]' bypasses the 'disableBeacon' property error
   const tourSteps: any[] = [
     {
       target: '.welcome-section',
@@ -55,7 +54,6 @@ export const EntrepreneurDashboard: React.FC = () => {
     }
   ];
 
-  // FINAL FIX: Using 'any' bypasses the 'options' and nested style errors
   const tourStyles: any = {
     options: {
       primaryColor: '#0ea5e9',
@@ -110,7 +108,7 @@ export const EntrepreneurDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in relative pb-10">
-      {/* FINAL FIX: Casting the entire component props to 'any' stops 'showProgress' error */}
+      {/* FIXED: 'run' prop ko 'runTour' se link kar diya hay */}
       <Joyride 
         {...({
           steps: tourSteps,
@@ -118,8 +116,7 @@ export const EntrepreneurDashboard: React.FC = () => {
           continuous: true,
           showProgress: true,
           showSkipButton: true,
-          scrollToFirstStep: true,
-          styles: tourStyles
+          style: tourStyles
         } as any)}
       />
 
